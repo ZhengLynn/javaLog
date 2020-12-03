@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--configuration:根节点  status:定义log4j2本身打印日志的级别  monitorinterval:指定log4j2自动重新配置的监测间隔时间,单位是s,最小是5s -->
+<Configuration status="INFO" monitorinterval="5" strict="true" name="LogConfig">
+    <!-- configuration有两个子节点:appenders loggers -->
+    <Appenders>
+        <!-- Console:定义输出到控制台的Appender  name:Console的属性，指定Appender的名字.
+        target:Console的属性，SYSTEM_OUT 或 SYSTEM_ERR,一般只设置默认:SYSTEM_OUT.-->
+        <Console name="Console" target="SYSTEM_OUT">
+            <!--只接受程序中INFO级别及以上的日志进行处理-->
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+            <!--PatternLayout:Console的子节点，输出格式，不设置默认为:%m%n.-->
+            <PatternLayout pattern="%m"/>
+        </Console>
+        <!--RollingFile:定义超过指定大小自动删除旧的创建新的的Appender.  name:RollingFile的属性，指定Appender的名字.
+        fileName:RollingFile的属性，指定输出日志的目的文件带全路径的文件名.  filePattern:RollingFile的属性，指定新建日志文件的名称格式.-->
+        <RollingFile name="RollingFileINFO" fileName="./logs/INFO.log"
+                     filePattern="logs/$${date:yyyy-MM}/INFO-%d{yyyy-MM-dd}-%i.log.gz">
+            <!--Filters:RollingFile的子节点，决定日志事件能否被输出。过滤条件有三个值：ACCEPT(接受), DENY(拒绝) or NEUTRAL(中立)-->
+            <Filters>
+                <!--只接受INFO级别的日志，其余的全部拒绝处理 onMatch:符合  onMismatch:不符合-->
+                <ThresholdFilter level="INFO"/>
+                <ThresholdFilter level="WARN" onMatch="DENY" onMismatch="NEUTRAL"/>
+            </Filters>
+            <!--PatternLayout:RollingFile的子节点，输出格式，不设置默认为:%m%n.-->
+            <PatternLayout
+                    pattern="[%d{yyyy-MM-dd HH:mm:ss}] %-5level %class{36} %L %M - %msg%xEx"/>
+            <!--Policies:RollingFile的子节点，指定滚动日志的策略，就是什么时候进行新建日志文件输出日志.-->
+            <Policies>
+                <!--SizeBasedTriggeringPolicy:Policies子节点，基于指定文件大小的滚动策略，size属性用来定义每个日志文件的大小.-->
+                <SizeBasedTriggeringPolicy size="500 MB"/>
+                <!--TimeBasedTriggeringPolicy:Policies子节点，基于时间的滚动策略，interval属性用来指定多久滚动一次，
+                默认是1hour。modulate=true用来调整时间：比如现在是早上3am，interval是4，那么第一次滚动是在4am，
+                接着是8am，12am...而不是7am.-->
+                <TimeBasedTriggeringPolicy/>
+            </Policies>
+        </RollingFile>
+        <!--Routing:将日志事件分类，按条件分配给子appender  name:RoutingAppender名称-->
+        <Routing name="Routing">
+            <!--Routes:包含一个或多个路由声明来标识选择Appenders的标准。 pattern:上下文模板名称-->
+            <Routes pattern="$${ctx:log4jFile}">
+                <Route>
+                    <!--File:用于保存文件。 name:当前Appender的命名  fileName:包含路径的文件名-->
+                    <File name="file" fileName="E:/logs/${ctx:log4jFile:-other.log}">
+                        <PatternLayout pattern="%m"></PatternLayout>
+                    </File>
+                </Route>
+            </Routes>
+        </Routing>
+
+    </Appenders>
+    <!-- 然后定义logger，只有定义了logger并引入的appender，appender才会生效 -->
+    <!--Loggers节点，常见的有两种:Root和Logger.-->
+    <Loggers>
+        <!--root:指定项目的根日志，如果没有单独指定Logger，那么就会默认使用该Root日志输出
+        level:日志输出级别，共有8个级别，按照从低到高为：All < Trace < Debug < Info < Warn < Error < Fatal < OFF.-->
+        <Root level="INFO">
+            <!--appender-ref:用来指定该日志输出到哪个Appender，通过ref指定.-->
+            <Appender-ref ref="Console"/>
+            <Appender-ref ref="RollingFileINFO"/>
+        </Root>
+        <!--logger:用来单独指定日志的形式，比如要为指定包下的class指定不同的日志级别等。
+        name:用来指定该Logger所适用的类或者类所在的包全路径,继承自Root节点.  additivity:是否叠加-->
+        <Logger name="com.cmos.javalog" level="INFO"></Logger>
+        <!--这个name要与java中LogManager.getLogger("log4jFile")相匹配-->
+        <Logger name="log4jFile" level="INFO" >
+            <AppenderRef ref="Routing"/>
+        </Logger>
+    </Loggers>
+</Configuration>
